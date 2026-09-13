@@ -1,0 +1,7 @@
+ultralytics
+paddlepaddle
+paddleocr
+opencv-python-headless
+requests
+pyyaml
+numpy
