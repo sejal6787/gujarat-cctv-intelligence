@@ -6,38 +6,33 @@ import {
   ShieldCheck,
   Target,
 } from "lucide-react";
-import { useState } from "react";
 
-const detections = [
-  {
-    time: "14:23:09",
-    camera: "CAM-017",
-    location: "Ahmedabad Junction",
-    confidence: "96%",
-  },
-  {
-    time: "14:11:42",
-    camera: "CAM-023",
-    location: "SG Highway Entry",
-    confidence: "94%",
-  },
-  {
-    time: "13:48:16",
-    camera: "CAM-011",
-    location: "Ashram Road",
-    confidence: "92%",
-  },
-  {
-    time: "13:26:51",
-    camera: "CAM-006",
-    location: "Navrangpura",
-    confidence: "89%",
-  },
-];
+
+import { useEffect, useState } from "react";
+
+import { api } from "../services/api";
+import type { Detection } from "../services/api";
+
+
 
 export default function Vehicles() {
   const [plate, setPlate] = useState("GJ01AB1234");
   const [searchedPlate, setSearchedPlate] = useState("GJ01AB1234");
+  const [vehicleDetections, setVehicleDetections] = useState<Detection[]>([]);
+  const [cameras, setCameras] = useState<
+  { id: number; name: string; location: string }[]
+>([]);
+
+
+useEffect(() => {
+  api
+    .getVehicleDetections(searchedPlate)
+    .then(setVehicleDetections)
+    .catch(console.error);
+
+    api.getCameras().then(setCameras).catch(console.error);
+}, [searchedPlate]);
+
 
   const handleSearch = () => {
     if (plate.trim()) {
@@ -125,21 +120,29 @@ export default function Vehicles() {
               <p className="text-[10px] tracking-wider text-slate-600">
                 TOTAL DETECTIONS
               </p>
-              <p className="mt-2 text-xl font-semibold">24</p>
+              <p className="mt-2 text-xl font-semibold">
+                {vehicleDetections.length}
+              </p>
             </div>
 
             <div>
               <p className="text-[10px] tracking-wider text-slate-600">
                 CAMERAS SEEN
               </p>
-              <p className="mt-2 text-xl font-semibold">08</p>
+              <p className="mt-2 text-xl font-semibold">
+                {new Set(vehicleDetections.map((detection) => detection.camera_id)).size}
+              </p>
             </div>
 
             <div>
               <p className="text-[10px] tracking-wider text-slate-600">
                 LAST DETECTED
               </p>
-              <p className="mt-2 text-xl font-semibold">14:23:09</p>
+              <p className="mt-2 text-xl font-semibold">
+                {vehicleDetections.length > 0
+    ? new Date(vehicleDetections[0].detected_at).toLocaleTimeString()
+    : "No detection"}
+              </p>
             </div>
           </div>
         </div>
@@ -154,12 +157,26 @@ export default function Vehicles() {
             <p className="text-xs text-slate-600">LAST KNOWN LOCATION</p>
 
             <p className="mt-2 text-sm font-medium text-slate-200">
-              Ahmedabad Junction
+              {(() => {
+    const latestDetection = vehicleDetections[0];
+    const camera = cameras.find(
+      (camera) => camera.id === latestDetection?.camera_id
+    );
+
+    return camera?.location || "Unknown location";
+  })()}
             </p>
 
             <p className="mt-1 flex items-center gap-1.5 text-xs text-slate-500">
               <MapPin size={12} />
-              Ahmedabad, Gujarat
+              {(() => {
+    const latestDetection = vehicleDetections[0];
+    const camera = cameras.find(
+      (camera) => camera.id === latestDetection?.camera_id
+    );
+
+    return camera?.location || "Unknown location";
+  })()}
             </p>
           </div>
 
@@ -186,13 +203,13 @@ export default function Vehicles() {
             </div>
 
             <span className="text-xs text-slate-600">
-              24 TOTAL EVENTS
+              {vehicleDetections.length} TOTAL EVENTS
             </span>
           </div>
         </div>
 
         <div className="divide-y divide-[#1B2330]">
-          {detections.map((detection, index) => (
+          {vehicleDetections.map((detection, index) => (
             <div
               key={index}
               className="flex items-center justify-between px-6 py-5 transition hover:bg-[#101722]"
@@ -203,14 +220,14 @@ export default function Vehicles() {
                 </div>
 
                 <div>
-                  <p className="font-medium text-slate-200">
-                    {detection.time}
-                  </p>
+  <p className="font-medium text-slate-200">
+    {new Date(detection.detected_at).toLocaleTimeString()}
+  </p>
 
-                  <p className="mt-1 text-sm text-slate-500">
-                    {detection.camera}
-                  </p>
-                </div>
+  <p className="mt-1 text-sm text-slate-500">
+    Camera {detection.camera_id}
+  </p>
+</div>
               </div>
 
               <div className="flex items-center gap-12">
@@ -221,7 +238,8 @@ export default function Vehicles() {
 
                   <p className="mt-1 flex items-center gap-1.5 text-sm text-slate-400">
                     <MapPin size={12} />
-                    {detection.location}
+                    {cameras.find((camera) => camera.id === detection.camera_id)?.location ||
+                     "Unknown"}
                   </p>
                 </div>
 
@@ -231,7 +249,8 @@ export default function Vehicles() {
                   </p>
 
                   <p className="mt-1 text-sm font-medium text-slate-300">
-                    {detection.confidence}
+                    {detection.confidence != null
+                     ? `${Math.round(detection.confidence * 100)}%` : "N/A"}
                   </p>
                 </div>
               </div>

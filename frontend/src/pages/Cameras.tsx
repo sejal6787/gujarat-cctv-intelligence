@@ -1,4 +1,7 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { api } from "../services/api";
+import type { Camera as CameraType } from "../services/api";
+
 
 import {
   Camera,
@@ -9,60 +12,22 @@ import {
   Wifi,
 } from "lucide-react";
 
-const cameras = [
-  {
-    id: "CAM-017",
-    name: "Ahmedabad Junction",
-    location: "Ahmedabad",
-    status: "ONLINE",
-    type: "IP Camera",
-  },
-  {
-    id: "CAM-023",
-    name: "SG Highway Entry",
-    location: "Ahmedabad",
-    status: "ONLINE",
-    type: "RTSP",
-  },
-  {
-    id: "CAM-031",
-    name: "Ring Road North",
-    location: "Surat",
-    status: "ONLINE",
-    type: "ONVIF",
-  },
-  {
-    id: "CAM-008",
-    name: "Railway Station Road",
-    location: "Vadodara",
-    status: "OFFLINE",
-    type: "IP Camera",
-  },
-  {
-    id: "CAM-042",
-    name: "City Centre Junction",
-    location: "Rajkot",
-    status: "ONLINE",
-    type: "RTSP",
-  },
-  {
-    id: "CAM-049",
-    name: "Airport Approach Road",
-    location: "Ahmedabad",
-    status: "ONLINE",
-    type: "ONVIF",
-  },
-];
 
 export default function Cameras() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [sourceFilter, setSourceFilter] = useState("ALL");
 
+  const [cameras, setCameras] = useState<CameraType[]>([]);
+
+useEffect(() => {
+  api.getCameras().then(setCameras).catch(console.error);
+}, []);
+
   const filteredCameras = useMemo(() => {
     return cameras.filter((camera) => {
       const matchesSearch =
-        camera.id.toLowerCase().includes(search.toLowerCase()) ||
+        String(camera.id).toLowerCase().includes(search.toLowerCase()) ||
         camera.name.toLowerCase().includes(search.toLowerCase()) ||
         camera.location.toLowerCase().includes(search.toLowerCase());
 
@@ -74,7 +39,7 @@ export default function Cameras() {
 
       return matchesSearch && matchesStatus && matchesSource;
     });
-  }, [search, statusFilter, sourceFilter]);
+  }, [cameras, search, statusFilter, sourceFilter]);
 
   return (
     <div className="space-y-8">

@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import {
   AlertTriangle,
   Bell,
@@ -8,52 +9,9 @@ import {
   ShieldAlert,
 } from "lucide-react";
 
-const alerts = [
-  {
-    id: "ALT-0042",
-    severity: "CRITICAL",
-    plate: "GJ01AB1234",
-    type: "Watchlist Match",
-    camera: "CAM-017",
-    location: "Ahmedabad Junction",
-    time: "14:23:09",
-    confidence: "96%",
-    status: "UNRESOLVED",
-  },
-  {
-    id: "ALT-0041",
-    severity: "HIGH",
-    plate: "GJ05RK7812",
-    type: "Suspicious Vehicle",
-    camera: "CAM-023",
-    location: "SG Highway Entry",
-    time: "14:18:42",
-    confidence: "91%",
-    status: "UNRESOLVED",
-  },
-  {
-    id: "ALT-0040",
-    severity: "MEDIUM",
-    plate: "GJ03MN4421",
-    type: "Watchlist Match",
-    camera: "CAM-031",
-    location: "Ring Road North",
-    time: "13:57:16",
-    confidence: "88%",
-    status: "ACKNOWLEDGED",
-  },
-  {
-    id: "ALT-0039",
-    severity: "MEDIUM",
-    plate: "GJ06PQ9123",
-    type: "Vehicle of Interest",
-    camera: "CAM-042",
-    location: "City Centre Junction",
-    time: "13:41:08",
-    confidence: "84%",
-    status: "ACKNOWLEDGED",
-  },
-];
+import { api } from "../services/api";
+import type { Alert as AlertType } from "../services/api";
+
 
 function severityStyle(severity: string) {
   if (severity === "CRITICAL") {
@@ -76,6 +34,12 @@ function severityIcon(severity: string) {
 }
 
 export default function Alerts() {
+  const [alerts, setAlerts] = useState<AlertType[]>([]);
+
+  useEffect(() => {
+    api.getAlerts().then(setAlerts).catch(console.error);
+  }, []);
+
   return (
     <div className="space-y-8">
       {/* HEADER */}
@@ -97,7 +61,11 @@ export default function Alerts() {
         <div className="flex items-center gap-2 rounded-lg border border-red-500/20 bg-red-500/5 px-4 py-2.5">
           <Bell size={15} className="text-red-400" />
           <span className="text-xs font-medium text-red-300">
-            2 HIGH PRIORITY
+            {alerts.filter(
+              (alert) =>
+                !alert.is_resolved &&
+             alert.severity.toLowerCase() === "high"
+          ).length} HIGH PRIORITY
           </span>
         </div>
       </div>
@@ -106,22 +74,30 @@ export default function Alerts() {
       <div className="grid grid-cols-4 gap-4">
         <div className="rounded-xl border border-[#1B2330] bg-[#0D111A] p-5">
           <p className="text-xs text-slate-500">ACTIVE ALERTS</p>
-          <p className="mt-3 text-3xl font-semibold">04</p>
+          <p className="mt-3 text-3xl font-semibold">
+            {alerts.filter((alert) => !alert.is_resolved).length}
+            </p>
         </div>
 
         <div className="rounded-xl border border-red-500/20 bg-[#0D111A] p-5">
           <p className="text-xs text-slate-500">CRITICAL</p>
-          <p className="mt-3 text-3xl font-semibold text-red-400">01</p>
+          <p className="mt-3 text-3xl font-semibold text-red-400">
+            {alerts.filter((alert) => alert.severity.toLowerCase() === "critical").length}
+          </p>
         </div>
 
         <div className="rounded-xl border border-orange-500/20 bg-[#0D111A] p-5">
           <p className="text-xs text-slate-500">HIGH</p>
-          <p className="mt-3 text-3xl font-semibold text-orange-400">01</p>
+          <p className="mt-3 text-3xl font-semibold text-orange-400">
+            {alerts.filter((alert) => alert.severity.toLowerCase() === "high").length}
+          </p>
         </div>
 
         <div className="rounded-xl border border-[#1B2330] bg-[#0D111A] p-5">
           <p className="text-xs text-slate-500">ACKNOWLEDGED</p>
-          <p className="mt-3 text-3xl font-semibold text-slate-300">02</p>
+          <p className="mt-3 text-3xl font-semibold text-slate-300">
+            {alerts.filter((alert) => alert.is_resolved).length}
+          </p>
         </div>
       </div>
 
@@ -162,7 +138,7 @@ export default function Alerts() {
                   <div>
                     <div className="flex items-center gap-3">
                       <span className="font-mono text-sm font-semibold text-slate-100">
-                        {alert.plate}
+                        {alert.plate_number}
                       </span>
 
                       <span className="text-xs text-slate-600">
@@ -171,31 +147,31 @@ export default function Alerts() {
 
                       <span
                         className={`rounded-md border px-2 py-1 text-[9px] font-semibold tracking-wider ${severityStyle(
-                          alert.severity
+                          alert.severity.toUpperCase()
                         )}`}
                       >
-                        {alert.severity}
+                        {alert.severity.toUpperCase()}
                       </span>
                     </div>
 
                     <p className="mt-1 text-sm text-slate-400">
-                      {alert.type}
+                      {alert.message}
                     </p>
 
                     <div className="mt-2 flex items-center gap-4 text-xs text-slate-600">
                       <span className="flex items-center gap-1.5">
                         <MapPin size={12} />
-                        {alert.location}
+                        Ahmedabad
                       </span>
 
                       <span className="flex items-center gap-1.5">
                         <CameraIcon />
-                        {alert.camera}
+                        Ahmedabad Camera 01
                       </span>
 
                       <span className="flex items-center gap-1.5">
                         <Clock3 size={12} />
-                        {alert.time}
+                        {new Date(alert.created_at).toLocaleString()}
                       </span>
                     </div>
                   </div>
@@ -209,7 +185,7 @@ export default function Alerts() {
                     </p>
 
                     <p className="mt-1 text-sm font-medium text-slate-300">
-                      {alert.confidence}
+                      95%
                     </p>
                   </div>
 
@@ -219,7 +195,7 @@ export default function Alerts() {
                     </p>
 
                     <div className="mt-1 flex items-center gap-1.5 text-xs">
-                      {alert.status === "ACKNOWLEDGED" ? (
+                      {alert.is_resolved ? (
                         <>
                           <CheckCircle2 size={13} className="text-emerald-400" />
                           <span className="text-emerald-400">

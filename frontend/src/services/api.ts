@@ -14,58 +14,64 @@ async function apiRequest<T>(endpoint: string): Promise<T> {
 }
 
 export interface Camera {
-  id: string;
+  id: number;
   name: string;
   location: string;
-  status: "ONLINE" | "OFFLINE";
-  type: string;
-  latitude?: number;
-  longitude?: number;
+  stream_url?: string;
+  is_active: boolean;
+  status?: string;
+  type?: string;
 }
 
 export interface Alert {
-  id: string;
-  severity: "CRITICAL" | "HIGH" | "MEDIUM" | "LOW";
-  plate: string;
-  type: string;
-  camera: string;
-  location: string;
-  time: string;
-  confidence: string;
-  status: "UNRESOLVED" | "ACKNOWLEDGED";
+  id: number;
+  detection_id: number;
+  plate_number: string;
+  severity: string;
+  message?: string;
+  is_resolved: boolean;
+  created_at: string;
 }
 
 export interface Detection {
-  id: string;
-  plate: string;
-  camera: string;
-  location: string;
-  time: string;
-  confidence: string;
-  type: string;
+  id: number;
+  camera_id: number;
+  plate_number?: string;
+  vehicle_type?: string;
+  confidence?: number;
+  detected_at: string;
 }
 
 export interface WatchlistVehicle {
-  plate: string;
-  category: string;
-  priority: "CRITICAL" | "HIGH" | "MEDIUM" | "LOW";
-  description: string;
-  lastSeen: string;
-  status: string;
+  id: number;
+  plate_number: string;
+  reason?: string;
+  is_active: boolean;
 }
 
 export const api = {
-  getCameras: () =>
-    apiRequest<Camera[]>("/api/cameras"),
+  getCameras: async () => {
+  const cameras = await apiRequest<Camera[]>("/cameras");
+
+  return cameras.map((camera) => ({
+    ...camera,
+    id: camera.id,
+    status: camera.is_active ? "ONLINE" : "OFFLINE",
+    type: camera.stream_url ? "IP Camera" : "Camera",
+  }));
+},
 
   getAlerts: () =>
-    apiRequest<Alert[]>("/api/alerts"),
+    apiRequest<Alert[]>("/alerts"),
 
-  getVehicleDetections: (plate: string) =>
-    apiRequest<Detection[]>(
-      `/api/vehicles/${encodeURIComponent(plate)}/detections`
-    ),
+  getVehicleDetections: (plate: string) => 
+  apiRequest<Detection[]>( 
+    `/vehicles/${encodeURIComponent(plate)}/detections` 
+  ),
 
-  getWatchlist: () =>
-    apiRequest<WatchlistVehicle[]>("/api/watchlist"),
+getDetections: () =>
+  apiRequest<Detection[]>("/detections"),
+ 
+getWatchlist: () => 
+  apiRequest<WatchlistVehicle[]>("/watchlist"),
 };

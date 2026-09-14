@@ -6,42 +6,15 @@ import {
   Search,
   ShieldAlert,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { api } from "../services/api";
+import type {
+  WatchlistVehicle,
+  Alert,
+  Detection,
+} from "../services/api";
 
-const watchlist = [
-  {
-    plate: "GJ01AB1234",
-    category: "VEHICLE OF INTEREST",
-    priority: "CRITICAL",
-    description: "Active investigation",
-    lastSeen: "14:23:09",
-    status: "ACTIVE",
-  },
-  {
-    plate: "GJ05RK7812",
-    category: "SUSPICIOUS VEHICLE",
-    priority: "HIGH",
-    description: "Flagged by authorised agency",
-    lastSeen: "14:18:42",
-    status: "ACTIVE",
-  },
-  {
-    plate: "GJ03MN4421",
-    category: "VEHICLE OF INTEREST",
-    priority: "MEDIUM",
-    description: "Under observation",
-    lastSeen: "13:57:16",
-    status: "ACTIVE",
-  },
-  {
-    plate: "GJ06PQ9123",
-    category: "MONITORING",
-    priority: "LOW",
-    description: "Routine monitoring",
-    lastSeen: "13:41:08",
-    status: "ACTIVE",
-  },
-];
+
 
 function priorityStyle(priority: string) {
   if (priority === "CRITICAL") {
@@ -61,13 +34,26 @@ function priorityStyle(priority: string) {
 
 export default function Watchlist() {
   const [search, setSearch] = useState("");
+    const [watchlist, setWatchlist] = useState<WatchlistVehicle[]>([]);
+    const [alerts, setAlerts] = useState<Alert[]>([]);
+    const [detections, setDetections] = useState<Detection[]>([]);
+
+
+
+  useEffect(() => {
+  api.getWatchlist().then(setWatchlist).catch(console.error);
+  api.getAlerts().then(setAlerts).catch(console.error);
+  api.getDetections().then(setDetections).catch(console.error);
+}, []);
 
   const filtered = watchlist.filter((vehicle) => {
-    return (
-      vehicle.plate.toLowerCase().includes(search.toLowerCase()) ||
-      vehicle.category.toLowerCase().includes(search.toLowerCase())
-    );
-  });
+  const query = search.toLowerCase();
+
+  return (
+    vehicle.plate_number.toLowerCase().includes(query) ||
+    vehicle.reason?.toLowerCase().includes(query)
+  );
+});
 
   return (
     <div className="space-y-8">
@@ -97,22 +83,47 @@ export default function Watchlist() {
       <div className="grid grid-cols-4 gap-4">
         <div className="rounded-xl border border-[#1B2330] bg-[#0D111A] p-5">
           <p className="text-xs text-slate-500">TOTAL ENTRIES</p>
-          <p className="mt-3 text-3xl font-semibold">128</p>
+          <p className="mt-3 text-3xl font-semibold">{watchlist.length}</p>
         </div>
 
         <div className="rounded-xl border border-red-500/20 bg-[#0D111A] p-5">
           <p className="text-xs text-slate-500">CRITICAL</p>
-          <p className="mt-3 text-3xl font-semibold text-red-400">08</p>
+          <p className="mt-3 text-3xl font-semibold text-red-400">
+            {alerts.filter(
+    (alert) =>
+      alert.severity.toLowerCase() === "critical" &&
+      watchlist.some(
+        (vehicle) =>
+          vehicle.is_active &&
+          vehicle.plate_number === alert.plate_number
+      )
+  ).length}
+          </p>
         </div>
 
         <div className="rounded-xl border border-orange-500/20 bg-[#0D111A] p-5">
           <p className="text-xs text-slate-500">HIGH PRIORITY</p>
-          <p className="mt-3 text-3xl font-semibold text-orange-400">17</p>
+          <p className="mt-3 text-3xl font-semibold text-orange-400">
+            {alerts.filter(
+    (alert) =>
+      alert.severity.toLowerCase() === "high" &&
+      watchlist.some(
+        (vehicle) =>
+          vehicle.is_active &&
+          vehicle.plate_number === alert.plate_number
+      )
+  ).length}
+          </p>
         </div>
 
         <div className="rounded-xl border border-[#1B2330] bg-[#0D111A] p-5">
           <p className="text-xs text-slate-500">MATCHES TODAY</p>
-          <p className="mt-3 text-3xl font-semibold text-blue-400">06</p>
+          <p className="mt-3 text-3xl font-semibold text-blue-400">
+  {alerts.filter(
+  (alert) =>
+    new Date(alert.created_at).toDateString() === new Date().toDateString()
+).length}
+</p>
         </div>
       </div>
 
@@ -152,7 +163,7 @@ export default function Watchlist() {
         <div className="divide-y divide-[#1B2330]">
           {filtered.map((vehicle) => (
             <div
-              key={vehicle.plate}
+              key={vehicle.plate_number}
               className="flex items-center justify-between px-6 py-5 transition hover:bg-[#101722]"
             >
               {/* VEHICLE */}
@@ -163,38 +174,59 @@ export default function Watchlist() {
 
                 <div>
                   <p className="font-mono text-sm font-semibold tracking-wide text-slate-200">
-                    {vehicle.plate}
-                  </p>
+                   {vehicle.plate_number}
+                    </p>
 
-                  <p className="mt-1 text-xs text-slate-500">
-                    {vehicle.category}
-                  </p>
+                    <p className="mt-1 text-xs text-slate-500">
+                  {vehicle.reason || "No reason provided"}
+                </p>
                 </div>
               </div>
 
               {/* PRIORITY */}
-              <div>
-                <p className="text-[10px] tracking-wider text-slate-600">
-                  PRIORITY
-                </p>
+<div>
+  <p className="text-[10px] tracking-wider text-slate-600">
+    PRIORITY
+  </p>
 
-                <span
-                  className={`mt-1 inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-[9px] font-semibold tracking-wider ${priorityStyle(
-                    vehicle.priority
-                  )}`}
-                >
-                  {vehicle.priority === "CRITICAL" ? (
-                    <ShieldAlert size={11} />
-                  ) : vehicle.priority === "HIGH" ? (
-                    <AlertTriangle size={11} />
-                  ) : (
-                    <CheckCircle2 size={11} />
-                  )}
+  {(() => {
+    const vehicleAlerts = alerts.filter(
+      (alert) => alert.plate_number === vehicle.plate_number
+    );
 
-                  {vehicle.priority}
-                </span>
-              </div>
+    const hasCritical = vehicleAlerts.some(
+      (alert) => alert.severity.toLowerCase() === "critical"
+    );
 
+    const hasHigh = vehicleAlerts.some(
+      (alert) => alert.severity.toLowerCase() === "high"
+    );
+
+    const priority = hasCritical
+      ? "CRITICAL"
+      : hasHigh
+      ? "HIGH"
+      : "NORMAL";
+
+    return (
+      <span
+        className={`mt-1 inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-[9px] font-semibold tracking-wider ${priorityStyle(
+          priority
+        )}`}
+      >
+        {priority === "CRITICAL" ? (
+          <ShieldAlert size={11} />
+        ) : priority === "HIGH" ? (
+          <AlertTriangle size={11} />
+        ) : (
+          <CheckCircle2 size={11} />
+        )}
+
+        {priority}
+      </span>
+    );
+  })()}
+</div>
               {/* DESCRIPTION */}
               <div className="w-52">
                 <p className="text-[10px] tracking-wider text-slate-600">
@@ -202,7 +234,7 @@ export default function Watchlist() {
                 </p>
 
                 <p className="mt-1 text-xs text-slate-400">
-                  {vehicle.description}
+                  {vehicle.reason || "No reason provided"}
                 </p>
               </div>
 
@@ -213,7 +245,22 @@ export default function Watchlist() {
                 </p>
 
                 <p className="mt-1 text-sm text-slate-300">
-                  {vehicle.lastSeen}
+                  {(() => {
+                     const latestDetection = detections
+                       .filter(
+                        (detection) =>
+                       detection.plate_number === vehicle.plate_number
+                        )
+                        .sort(
+                         (a, b) =>
+                         new Date(b.detected_at).getTime() -
+                         new Date(a.detected_at).getTime()
+                        )[0];
+
+                       return latestDetection
+                        ? new Date(latestDetection.detected_at).toLocaleString()
+                       : "No detection";
+                    })()}
                 </p>
               </div>
 
@@ -223,9 +270,17 @@ export default function Watchlist() {
                   STATUS
                 </p>
 
-                <p className="mt-1 flex items-center justify-end gap-1.5 text-xs text-emerald-400">
-                  <CheckCircle2 size={12} />
-                  {vehicle.status}
+                <p
+                  className={`mt-1 flex items-center justify-end gap-1.5 text-xs ${
+                     vehicle.is_active ? "text-emerald-400" : "text-slate-500"
+                      }`}
+                >
+                  {vehicle.is_active ? (
+  <CheckCircle2 size={12} />
+) : (
+  <AlertTriangle size={12} />
+)}
+                    {vehicle.is_active ? "ACTIVE" : "INACTIVE"}
                 </p>
               </div>
             </div>
