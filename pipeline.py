@@ -19,7 +19,7 @@ PLATE_MODEL_PATH = 'indian_plate_v1.pt'    # Custom trained top-tier plate model
 CONFIDENCE_THRESHOLD = 0.5
 OCR_CONFIDENCE_THRESHOLD = 0.8
 PROCESS_EVERY_N_FRAMES = 3                 # Optimization: Process 1 out of 3 frames
-API_ENDPOINT = "http://localhost:8000/api/detections"
+API_ENDPOINT = "http://localhost:8000/detections"
 OCR_BUFFER_SIZE = 3                        # Frames to buffer before picking best OCR read
 
 # Indian Plate Regex: e.g., GJ01AB1234
