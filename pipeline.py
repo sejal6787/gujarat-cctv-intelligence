@@ -33,7 +33,7 @@ class EventDispatcher:
     def __init__(self, output_dir: str = 'snapshots'):
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
-        self.camera_id = "CAM-001"
+        self.camera_id = 1
 
     def _post_payload(self, payload: Dict[str, Any]):
         """Asynchronous HTTP POST worker."""
